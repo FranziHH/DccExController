@@ -1,3 +1,10 @@
+# ! Fork From WiTcontroller
+This is Forked From https://github.com/flash62au/DccExController
+
+My Changes Are:
+* add Entry for ESP32 in platformio.ini 
+
+
 # DccExController
 
 A DccExController is a simple DIY, handheld controller that talks to a wThrottle Server (JMRI, DCC++EX and many others) using the Native DCC-EX protocol, exclusive to the EX-CommandStations, to control DC and DCC model trains. 

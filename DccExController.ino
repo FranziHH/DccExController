@@ -7,23 +7,32 @@
   - Flash the sketch 
  */
 
+#include <string>
+
+// Use the Arduino IDE 'Boards' Manager to get these libraries
+// They will be installed with the 'ESP32' Board library
+// DO NOT DOWNLOAD THEM DIRECTLY!!!
 #include <WiFi.h>                 // https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi     GPL 2.1
-#include <ESPmDNS.h>              // https://github.com/espressif/arduino-esp32/blob/master/libraries/ESPmDNS (You should be able to download it from here https://github.com/espressif/arduino-esp32 Then unzip it and copy 'just' the ESPmDNS folder to your own libraries folder )
+#include <ESPmDNS.h>              // https://github.com/espressif/arduino-esp32/blob/master/libraries/ESPmDNS  GPL 2.1
+
+// use the Arduino IDE 'Library' Manager to get these libraries
+// DO NOT DOWNLOAD THEM DIRECTLY!!!
 #include <DCCEXProtocol.h>        // https://github.com/DCC-EX/DCCEXProtocol                                    
 #include <AiEsp32RotaryEncoder.h> // https://github.com/igorantolic/ai-esp32-rotary-encoder                    GPL 2.0
 #include <Keypad.h>               // https://www.arduinolibraries.info/libraries/keypad                        GPL 3.0
 #include <U8g2lib.h>              // https://github.com/olikraus/u8g2  (Just get "U8g2" via the Arduino IDE Library Manager)   new-bsd
-#include <string>
 
+// this library is included with the WiTController code
 #include "Pangodream_18650_CL.h"  // https://github.com/pangodream/18650CL  
 
+// create these files by copying the example files and editing them as needed
 #include "config_network.h"       // LAN networks (SSIDs and passwords)
 #include "config_buttons.h"       // keypad buttons assignments
-#include "config_keypad_etc.h"    // hardware config - GPIOs - keypad, encoder; oled display type
 
+// DO NOT ALTER these files
+#include "config_keypad_etc.h"    // hardware config - GPIOs - keypad, encoder; oled display type
 #include "static.h"
 #include "actions.h"
-
 #include "DccExController.h"
 #include "Throttle.h"
 
@@ -50,9 +59,9 @@ int keypadUseType = KEYPAD_USE_OPERATION;
 int encoderUseType = ENCODER_USE_OPERATION;
 int encoderButtonAction = ENCODER_BUTTON_ACTION;
 
-boolean menuCommandStarted = false;
+bool menuCommandStarted = false;
 String menuCommand = "";
-boolean menuIsShowing = false;
+bool menuIsShowing = false;
 
 String oledText[18] = {"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""};
 bool oledTextInvert[18] = {false, false, false, false, false, false, false, false, false, 
@@ -71,21 +80,30 @@ int lastEncoderValue = 0;
 
 // battery test values
 bool useBatteryTest = USE_BATTERY_TEST;
+#if USE_BATTERY_TEST
+  #if USE_BATTERY_PERCENT_AS_WELL_AS_ICON
+    ShowBattery showBatteryTest = BATTERY_ICON_AND_PERCENT;
+  #else 
+    ShowBattery showBatteryTest = BATTERY_ICON_ONLY;
+  #endif
+#else
+  ShowBattery showBatteryTest = BATTERY_NONE;
+#endif
 int batteryTestPin = BATTERY_TEST_PIN;
 bool useBatteryPercentAsWellAsIcon = USE_BATTERY_PERCENT_AS_WELL_AS_ICON;
 int lastBatteryTestValue = 0; 
 double lastBatteryCheckTime = 0;
-Pangodream_18650_CL BL(BATTERY_TEST_PIN);
+Pangodream_18650_CL BL(BATTERY_TEST_PIN, BATTERY_CONVERSION_FACTOR);
 
 // server variables
-// boolean ssidConnected = false;
+// bool ssidConnected = false;
 String selectedSsid = "";
 String selectedSsidPassword = "";
 int ssidConnectionState = CONNECTION_STATE_DISCONNECTED;
 
 // ssid password entry
 String ssidPasswordEntered = "";
-boolean ssidPasswordChanged = true;
+bool ssidPasswordChanged = true;
 char ssidPasswordCurrentChar = ssidPasswordBlankChar; 
 
 IPAddress selectedWitServerIP;
@@ -105,7 +123,7 @@ bool autoConnectToFirstWiThrottleServer = AUTO_CONNECT_TO_FIRST_WITHROTTLE_SERVE
 //found ssids
 String foundSsids[maxFoundSsids];
 long foundSsidRssis[maxFoundSsids];
-boolean foundSsidsOpen[maxFoundSsids];
+bool foundSsidsOpen[maxFoundSsids];
 int foundSsidsCount = 0;
 int ssidSelectionSource;
 double startWaitForSelection;
@@ -113,7 +131,7 @@ double startWaitForSelection;
 // wit Server ip entry
 String witServerIpAndPortConstructed = "###.###.###.###:#####";
 String witServerIpAndPortEntered = DEFAULT_IP_AND_PORT;
-boolean witServerIpAndPortChanged = true;
+bool witServerIpAndPortChanged = true;
 
 // roster variables
 int rosterSize = 0;
@@ -125,7 +143,7 @@ int page = 0;
 int functionPage = 0;
 bool functionHasBeenSelected = false;
 
-boolean searchRosterOnEntryOfDccAddress = SEARCH_ROSTER_ON_ENTRY_OF_DCC_ADDRESS;
+bool searchRosterOnEntryOfDccAddress = SEARCH_ROSTER_ON_ENTRY_OF_DCC_ADDRESS;
 
 // Broadcast msessage
 String broadcastMessageText = "";
@@ -135,14 +153,14 @@ long broadcastMessageTime = 0;
 int lastOledScreen = 0;
 String lastOledStringParameter = "";
 int lastOledIntParameter = 0;
-boolean lastOledBooleanParameter = false;
+bool lastOledBooleanParameter = false;
 
 // turnout variables
 int turnoutListSize = 0;
 int turnoutListIndex[maxTurnoutList]; 
 String turnoutListSysName[maxTurnoutList]; 
 String turnoutListUserName[maxTurnoutList];
-boolean turnoutListState[maxTurnoutList];
+bool turnoutListState[maxTurnoutList];
 
 // route variables
 int routeListSize = 0;
@@ -154,12 +172,12 @@ String routeListUserName[maxRouteList];
 Throttle* throttles[6];   // set to maximum possible (6 throttles)
 
 // function states
-boolean functionStates[6][MAX_FUNCTIONS];   // set to maximum possible (6 throttles)
+bool functionStates[6][MAX_FUNCTIONS];   // set to maximum possible (6 throttles)
 
 // function labels
 String functionLabels[6][MAX_FUNCTIONS];   // set to maximum possible (6 throttles)
 // function momentary
-boolean functionMomentary[6][MAX_FUNCTIONS]; // set to maximum possible (6 throttles)
+bool functionMomentary[6][MAX_FUNCTIONS]; // set to maximum possible (6 throttles)
 
 // consist function follow
 int functionFollow[6][MAX_FUNCTIONS];   // set to maximum possible (6 throttles)
@@ -174,7 +192,7 @@ int maxThrottles = MAX_THROTTLES;
 int heartBeatPeriod = 10; // default to 10 seconds
 long lastHeartBeatSentTime;
 long lastServerResponseTime;
-boolean heartbeatCheckEnabled = true;
+bool heartbeatCheckEnabled = true;
 
 // used to stop speed bounces
 long lastSpeedSentTime = 0;
@@ -188,10 +206,10 @@ int lastSpeedThrottleIndex = 0;
 static unsigned long rotaryEncoderButtonLastTimePressed = 0;
 const int rotaryEncoderButtonEncoderDebounceTime = ROTARY_ENCODER_DEBOUNCE_TIME;   // in miliseconds
 
-const boolean encoderRotationClockwiseIsIncreaseSpeed = ENCODER_ROTATION_CLOCKWISE_IS_INCREASE_SPEED;
+const bool encoderRotationClockwiseIsIncreaseSpeed = ENCODER_ROTATION_CLOCKWISE_IS_INCREASE_SPEED;
 // false = Counterclockwise  true = clockwise
 
-const boolean toggleDirectionOnEncoderButtonPressWhenStationary = TOGGLE_DIRECTION_ON_ENCODER_BUTTON_PRESSED_WHEN_STATIONAY;
+const bool toggleDirectionOnEncoderButtonPressWhenStationary = TOGGLE_DIRECTION_ON_ENCODER_BUTTON_PRESSED_WHEN_STATIONAY;
 // true = if the locos(s) are stationary, clicking the encoder button will toggle the direction
 
 //4x3 keypad only uses 0-9
@@ -222,9 +240,9 @@ const String directCommandText[4][3] = {
 
 bool oledDirectCommandsAreBeingDisplayed = false;
 #ifdef HASH_SHOWS_FUNCTIONS_INSTEAD_OF_KEY_DEFS
-  boolean hashShowsFunctionsInsteadOfKeyDefs = HASH_SHOWS_FUNCTIONS_INSTEAD_OF_KEY_DEFS;
+  bool hashShowsFunctionsInsteadOfKeyDefs = HASH_SHOWS_FUNCTIONS_INSTEAD_OF_KEY_DEFS;
 #else
-  boolean hashShowsFunctionsInsteadOfKeyDefs = false;
+  bool hashShowsFunctionsInsteadOfKeyDefs = false;
 #endif
 
 // in case the values are not defined in config_buttons.h
@@ -263,8 +281,8 @@ int additionalButtonActions[MAX_ADDITIONAL_BUTTONS] = {
 };
 unsigned long lastAdditionalButtonDebounceTime[MAX_ADDITIONAL_BUTTONS];  // the last time the output pin was toggled
 unsigned long additionalButtonDebounceDelay = ADDITIONAL_BUTTON_DEBOUNCE_DELAY;    // the debounce time
-boolean additionalButtonRead[MAX_ADDITIONAL_BUTTONS];
-boolean additionalButtonLastRead[MAX_ADDITIONAL_BUTTONS];
+bool additionalButtonRead[MAX_ADDITIONAL_BUTTONS];
+bool additionalButtonLastRead[MAX_ADDITIONAL_BUTTONS];
 
 char *customCommand1 = (char*) CUSTOM_COMMAND_1;
 char *customCommand2 = (char*) CUSTOM_COMMAND_2;
@@ -416,7 +434,7 @@ void browseSsids() { // show the found SSIDs
   } else {
     for (int thisSsid = 0; thisSsid < numSsids; thisSsid++) {
       /// remove duplicates (repeaters and mesh networks)
-      boolean found = false;
+      bool found = false;
       for (int i=0; i<foundSsidsCount && i<maxFoundSsids; i++) {
         if (WiFi.SSID(thisSsid) == foundSsids[i]) {
           found = true;
@@ -1022,7 +1040,7 @@ void rotary_loop() {
   }
 }
 
-void encoderSpeedChange(boolean rotationIsClockwise, int speedChange) {
+void encoderSpeedChange(bool rotationIsClockwise, int speedChange) {
   if (encoderRotationClockwiseIsIncreaseSpeed) {
     if (rotationIsClockwise) {
       speedUp(currentThrottleIndex, speedChange);
@@ -1241,7 +1259,7 @@ void loop() {
 //  Key press and Menu
 // *********************************************************************************
 
-void doKeyPress(char key, boolean pressed) {
+void doKeyPress(char key, bool pressed) {
   debug_println("doKeyPress(): Start: "); 
 
   if (pressed)  { //pressed
@@ -1570,7 +1588,7 @@ void doKeyPress(char key, boolean pressed) {
   // debug_println("doKeyPress(): end"); 
 }
 
-void doDirectCommand (char key, boolean pressed) {
+void doDirectCommand (char key, bool pressed) {
   debug_print("doDirectCommand(): key: "); debug_print(key);  debug_print(" pressed: "); debug_println(pressed); 
   int buttonAction = 0 ;
   if (key<=57) {
@@ -1590,7 +1608,7 @@ void doDirectCommand (char key, boolean pressed) {
   // debug_println("doDirectCommand(): end"); 
 }
 
-void doDirectAdditionalButtonCommand (int buttonIndex, boolean pressed) {
+void doDirectAdditionalButtonCommand (int buttonIndex, bool pressed) {
   debug_print("doDirectAdditionalButtonCommand(): "); debug_println(buttonIndex);
   int buttonAction = additionalButtonActions[buttonIndex];
   if (buttonAction!=FUNCTION_NULL) {
@@ -1605,7 +1623,7 @@ void doDirectAdditionalButtonCommand (int buttonIndex, boolean pressed) {
   // debug_println("doDirectAdditionalButtonCommand(): end ");
 }
 
-void doDirectCommandFunction(int currentThrottleIndex, int buttonAction, boolean pressed) {
+void doDirectCommandFunction(int currentThrottleIndex, int buttonAction, bool pressed) {
   debug_print("doDirectCommandFunction(): "); debug_println(buttonAction);  debug_print(" pressed: "); debug_println(pressed); 
   if (functionMomentary[currentThrottleIndex][buttonAction])  { // is momentary
     debug_print("doDirectCommandFunction(): function is Momentary"); 
@@ -1681,6 +1699,10 @@ void doDirectAction(int buttonAction) {
         powerToggle();
         break; 
       }
+      case SHOW_HIDE_BATTERY: {
+        batteryShowToggle();
+        break; 
+      }
       case NEXT_THROTTLE: {
         nextThrottle();
         break; 
@@ -1741,7 +1763,7 @@ void doDirectAction(int buttonAction) {
 void doMenu() {
   int address;
   String function = "";
-  boolean result = false;
+  bool result = false;
   // int index;
   debug_print("Menu: "); debug_println(menuCommand);
   
@@ -2170,7 +2192,7 @@ void changeDirection(int multiThrottleIndex, Direction direction) {
   // debug_println("Change direction(): end "); 
 }
 
-void doDirectFunction(int multiThrottleIndex, int functionNumber, boolean pressed) {
+void doDirectFunction(int multiThrottleIndex, int functionNumber, bool pressed) {
   debug_print("doDirectFunction(): "); debug_print(multiThrottleIndex);  debug_print(" , "); debug_println(functionNumber);
   if (throttles[currentThrottleIndex]->getLocoCount() > 0) {
     debug_print("direct fn: "); debug_print(functionNumber); debug_println( pressed ? " Pressed" : " Released");
@@ -2208,7 +2230,7 @@ void doFunction(int multiThrottleIndex, int functionNumber, bool pressed, bool o
 
 // Work out which locos in a consist should get the function
 //
-void doFunctionWhichLocosInConsist(int multiThrottleIndex, int functionNumber, boolean pressed) {
+void doFunctionWhichLocosInConsist(int multiThrottleIndex, int functionNumber, bool pressed) {
   debug_print("doFunctionWhichLocosInConsist() multiThrottleIndex "); debug_print(multiThrottleIndex);
   debug_print(" fn: "); debug_println(functionNumber);
   if (functionFollow[multiThrottleIndex][functionNumber]==CONSIST_LEAD_LOCO) {
@@ -2273,6 +2295,23 @@ void changeNumberOfThrottles(bool increase) {
   writeOledSpeed();
 }
 
+void batteryShowToggle() {
+  debug_println("batteryShowToggle()");
+  switch (showBatteryTest) {
+    case BATTERY_ICON_ONLY: 
+      showBatteryTest = BATTERY_ICON_AND_PERCENT;
+      break;
+    case BATTERY_ICON_AND_PERCENT: 
+      showBatteryTest = BATTERY_NONE;
+      break;
+    case BATTERY_NONE: 
+    default:
+      showBatteryTest = BATTERY_ICON_ONLY;
+      break;
+  }
+  writeOledSpeed();
+}
+
 void stopThenToggleDirection() {
   if (throttles[currentThrottleIndex]->getLocoCount() > 0) {
     if (currentSpeed[currentThrottleIndex] != 0) {
@@ -2294,7 +2333,7 @@ void reconnect() {
   disconnectWitServer();
 }
 
-void setLastServerResponseTime(boolean force) {
+void setLastServerResponseTime(bool force) {
   // debug_print("setLastServerResponseTime "); debug_println((force) ? "True": "False");
   // debug_print("lastServerResponseTime "); debug_print(lastServerResponseTime);
   // debug_print("  millis "); debug_println(millis() / 1000);
@@ -2337,7 +2376,7 @@ void selectRoster(int selection) {
   }
 }
 
-void selectTurnoutList(int selection, boolean action) {
+void selectTurnoutList(int selection, bool action) {
   debug_print("selectTurnoutList() "); debug_println(selection);
 
   if ((selection>=0) && (selection < turnoutListSize)) {
@@ -2453,7 +2492,7 @@ void _loadRouteList() {
 
 void _processLocoUpdate(Loco* loco) {
   debugLocoSpeed("_processLocoUpdate() start:", loco);
-  boolean found = false;
+  bool found = false;
   for (int i=0; i<maxThrottles; i++) {
     if (throttles[i]->getLocoCount()>0) {
       Loco* firstLoco = throttles[i]->getFirst()->getLoco();
@@ -2581,7 +2620,7 @@ void writeOledRoster(String soFar) {
   }
 }
 
-void writeOledTurnoutList(String soFar, boolean action) {
+void writeOledTurnoutList(String soFar, bool action) {
   lastOledScreen = last_oled_screen_turnout_list;
   lastOledStringParameter = soFar;
   lastOledBooleanParameter = action;
@@ -2823,7 +2862,7 @@ void writeOledSpeed() {
 
   clearOledArray();
   
-  boolean drawTopLine = false;
+  bool drawTopLine = false;
 
   if (throttles[currentThrottleIndex]->getLocoCount() > 0 ) {
     // oledText[0] = label_locos; oledText[2] = label_speed;
@@ -2908,7 +2947,7 @@ void writeOledSpeed() {
   if (speedStep != currentSpeedStep[currentThrottleIndex]) {
     // oledText[3] = "X " + String(speedStepCurrentMultiplier);
     u8g2.setDrawColor(1);
-    u8g2.setFont(FONT_SPEED_STEP);
+    u8g2.setFont(FONT_GLYPHS);
     u8g2.drawGlyph(1, 38, glyph_speed_step);
     u8g2.setFont(FONT_DEFAULT);
     // u8g2.drawStr(0, 37, ("X " + String(speedStepCurrentMultiplier)).c_str());
@@ -2920,13 +2959,13 @@ void writeOledSpeed() {
     u8g2.drawRBox(0,40,9,9,1);
     u8g2.setDrawColor(0);
   }
-  u8g2.setFont(FONT_TRACK_POWER);
+  u8g2.setFont(FONT_GLYPHS);
   // u8g2.drawStr(0, 48, label_track_power.c_str());
   u8g2.drawGlyph(1, 48, glyph_track_power);
   u8g2.setDrawColor(1);
 
   if (!heartbeatCheckEnabled) {
-    u8g2.setFont(FONT_HEARTBEAT);
+    u8g2.setFont(FONT_GLYPHS);
     u8g2.drawGlyph(13, 49, glyph_heartbeat_off);
     u8g2.setDrawColor(2);
     u8g2.drawLine(13, 48, 20, 41);
@@ -2958,26 +2997,58 @@ void writeOledSpeed() {
   // debug_println("writeOledSpeed(): end");
 }
 
-void writeOledBattery() {
-  if (useBatteryTest) {
-    // int lastBatteryTestValue = random(0,100);
-    u8g2.setFont(FONT_HEARTBEAT);
-    u8g2.setDrawColor(1);
-    u8g2.drawStr(1, 30, String("Z").c_str());
-    if (lastBatteryTestValue>10) u8g2.drawLine(2, 24, 2, 27);
-    if (lastBatteryTestValue>25) u8g2.drawLine(3, 24, 3, 27);
-    if (lastBatteryTestValue>50) u8g2.drawLine(4, 24, 4, 27);
-    if (lastBatteryTestValue>75) u8g2.drawLine(5, 24, 5, 27);
-    if (lastBatteryTestValue>90) u8g2.drawLine(6, 24, 6, 27);
+// void writeOledBattery() {
+//   if (useBatteryTest) {
+//     // int lastBatteryTestValue = random(0,100);
+//     u8g2.setFont(FONT_GLYPHS);
+//     u8g2.setDrawColor(1);
+//     u8g2.drawStr(1, 30, String("Z").c_str());
+//     if (lastBatteryTestValue>10) u8g2.drawLine(2, 24, 2, 27);
+//     if (lastBatteryTestValue>25) u8g2.drawLine(3, 24, 3, 27);
+//     if (lastBatteryTestValue>50) u8g2.drawLine(4, 24, 4, 27);
+//     if (lastBatteryTestValue>75) u8g2.drawLine(5, 24, 5, 27);
+//     if (lastBatteryTestValue>90) u8g2.drawLine(6, 24, 6, 27);
     
-    u8g2.setFont(FONT_FUNCTION_INDICATORS);
-    if (useBatteryPercentAsWellAsIcon) {
-      u8g2.drawStr(1,22, String(String(lastBatteryTestValue)+"%").c_str());
+//     u8g2.setFont(FONT_FUNCTION_INDICATORS);
+//     if (useBatteryPercentAsWellAsIcon) {
+//       u8g2.drawStr(1,22, String(String(lastBatteryTestValue)+"%").c_str());
+//     }
+//     if(lastBatteryTestValue<5) {
+//       u8g2.drawStr(11,29, String("LOW").c_str());
+//     }
+//     u8g2.setFont(FONT_DEFAULT);
+//   }
+// }
+
+void writeOledBattery() {
+  // debug_print("writeOledBattery(): time: "); debug_println(lastBatteryCheckTime);
+  if ( (useBatteryTest) && (showBatteryTest!=BATTERY_NONE) && (lastBatteryCheckTime>0)) {
+    // debug_println("writeOledBattery(): do it"); 
+    //int lastBatteryTestValue = random(0,100);
+    u8g2.setFont(FONT_GLYPHS);
+    u8g2.setDrawColor(1);
+    // int x = 13; int y = 28;
+    int x = 120; int y = 11;
+    // if (useBatteryPercentAsWellAsIcon) x = 102;
+    if (showBatteryTest==BATTERY_ICON_AND_PERCENT) x = 102;
+    u8g2.drawStr(x, y, String("Z").c_str());
+    if (lastBatteryTestValue>10) u8g2.drawLine(x+1, y-6, x+1, y-3);
+    if (lastBatteryTestValue>25) u8g2.drawLine(x+2, y-6, x+2, y-3);
+    if (lastBatteryTestValue>50) u8g2.drawLine(x+3, y-6, x+3, y-3);
+    if (lastBatteryTestValue>75) u8g2.drawLine(x+4, y-6, x+4, y-3);
+    if (lastBatteryTestValue>90) u8g2.drawLine(x+5, y-6, x+5, y-3);
+    
+    // if (useBatteryPercentAsWellAsIcon) {
+    if (showBatteryTest==BATTERY_ICON_AND_PERCENT) {
+      // x = 13; y = 36;
+      x = 112; y = 10;
+      u8g2.setFont(FONT_FUNCTION_INDICATORS);
+      if(lastBatteryTestValue<5) {
+        u8g2.drawStr(x,y, String("LOW").c_str());
+      } else {
+        u8g2.drawStr(x,y, String(String(lastBatteryTestValue)+"%").c_str());
+      }
     }
-    if(lastBatteryTestValue<5) {
-      u8g2.drawStr(11,29, String("LOW").c_str());
-    }
-    u8g2.setFont(FONT_DEFAULT);
   }
 }
 
@@ -3026,15 +3097,15 @@ void writeOledFunctions() {
   // debug_println("writeOledFunctions(): end");
 }
 
-void writeOledArray(boolean isThreeColums, boolean isPassword) {
+void writeOledArray(bool isThreeColums, bool isPassword) {
   writeOledArray(isThreeColums, isPassword, true, false);
 }
 
-void writeOledArray(boolean isThreeColums, boolean isPassword, boolean sendBuffer) {
+void writeOledArray(bool isThreeColums, bool isPassword, bool sendBuffer) {
   writeOledArray(isThreeColums, isPassword, sendBuffer, false);
 }
 
-void writeOledArray(boolean isThreeColums, boolean isPassword, boolean sendBuffer, boolean drawTopLine) {
+void writeOledArray(bool isThreeColums, bool isPassword, bool sendBuffer, bool drawTopLine) {
   // debug_println("Start writeOledArray()");
   u8g2.clearBuffer();					// clear the internal memory
 

@@ -404,6 +404,21 @@ I recommend adding a physical power switch to disconnect the battery as this fea
 
 ## Change Log
 
+### V0.31
+- bug fix.  roster entries >60 would cause a crash
+
+### V0.30
+- add define for ``CUSTOM_APPNAME``
+
+### V0.29
+- support UTF8 fonts better
+
+### V0.28
+- able to override the default font (not recommended)
+
+### V0.27
+- change to a font that has accented characters
+
 ### V0.26
 - fix bug introduced by changes in v1.0.1 of the Protocol library such that the direction of non-roster locos could not be changed.
 

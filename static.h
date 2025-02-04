@@ -1,5 +1,9 @@
-const String appName = "DccExController";
-const String appVersion = "  v0.26";
+const String appVersion = "  v0.31";
+#ifndef CUSTOM_APPNAME
+   const String appName = "DccExController";
+#else
+   const String appName = CUSTOM_APPNAME;
+#endif
 
 
 #ifndef MENU_TEXT_MENU
@@ -451,7 +455,9 @@ const char ssidPasswordBlankChar = 164;
 // *******************************************************************************************************************
 // fonts
 
-#define FONT_DEFAULT u8g2_font_NokiaSmallPlain_tf
+#ifndef FONT_DEFAULT
+   #define FONT_DEFAULT u8g2_font_NokiaSmallPlain_te
+#endif
 #define FONT_FUNCTION_INDICATORS u8g2_font_tiny_simon_tr
 #define FONT_THROTTLE_NUMBER u8g2_font_neuecraft_tr
 #define FONT_PASSWORD u8g2_font_9x15_tf
